@@ -1,0 +1,109 @@
+module video_card(h_sync,v_sync,reset,red,green,blue,R,G,B,row,clock);
+input reset,red,green,blue,clock;
+output reg h_sync,v_sync,R,G,B;
+output reg [9:0] row;
+reg [9:0] h_count,v_count;
+reg video_on,video_h,video_v;
+
+// h-counter
+always@(posedge clock)
+begin
+	if (reset == 1'b1)
+	begin
+		h_count <= 1'b0;
+	end
+	else
+	begin
+		if (h_count == 799)
+			h_count <= 1'b0;
+		else 
+			h_count <= h_count + 1'b1;
+	end
+end
+
+// horizontal video ON/OFF
+always@(h_count[0])
+begin
+	if (h_count>639)
+	begin
+		video_h <= 1'b0;
+		//column <= 0;
+	end
+	else
+	begin
+		video_h <= 1'b1;
+		//column <= h_count;
+	end
+end
+
+// v-counter
+always@(posedge clock)
+begin
+	if (reset == 1'b1)
+		v_count <= 1'b0;
+	else
+	begin
+		if (h_count == 799)
+		begin
+			if (v_count == 524)
+				v_count <= 1'b0;
+			else
+				v_count <= v_count + 1'b1;
+		end
+	end
+end
+
+// verticle video ON/OFF
+always@(v_count[0])
+begin
+	if (v_count>479)
+	begin
+		video_v <= 1'b0;
+		row <= 1'b0;
+	end
+	else
+	begin
+		video_v <= 1'b1;
+		row <= v_count;
+	end
+end
+
+// generating h-sync and v-sync signals
+always@(posedge clock)
+begin
+	if (reset == 1'b1)
+	begin
+		h_sync <= 1'b0;
+		v_sync <= 1'b0;
+	end
+	else
+	begin
+		if (h_count < 755 && h_count >= 659)
+			h_sync <= 1'b0;
+		else
+			h_sync <= 1'b1;
+		if (v_count < 491 && v_count >= 489)
+			v_sync <= 1'b0;
+		else
+			v_sync <= 1'b1;
+	end
+end
+
+// sending color signals
+always@(posedge clock)
+begin
+	video_on <= video_h && video_v;
+	if (reset == 1'b1)
+	begin
+		R <= 1'b0;
+		G <= 1'b0;
+		B <= 1'b0;
+	end
+	else
+	begin
+		R <= red & video_on;
+		G <= green & video_on;
+		B <= blue & video_on;
+	end
+end
+endmodule
